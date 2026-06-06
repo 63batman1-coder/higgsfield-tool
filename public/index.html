@@ -514,7 +514,7 @@ select option{background:#191c21}
 
         // Step 3: Confirm
         log('✅ Confirming upload...');
-        const confirmed = await apiCall('upload-confirm', { media_id });
+        const confirmed = await apiCall('upload-confirm', {}, `&media_id=${encodeURIComponent(media_id)}`);
         const finalId = confirmed.media_id || confirmed.id || media_id;
         log('✅ Upload confirmed — '+finalId.slice(0,8)+'...', 'ok');
         bar.style.width='25%'; pct.textContent='25%';
