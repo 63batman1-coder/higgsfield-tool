@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Video Tool</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0b0d;--s1:#111316;--s2:#191c21;--s3:#21252d;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#eeeef0;--muted:#6b7280;
+  --accent:#5b8ff9;--accent-dim:rgba(91,143,249,0.1);
+  --green:#34d399;--green-dim:rgba(52,211,153,0.1);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.1);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.08);
+  --r:10px;--r-sm:7px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+h1,h2,h3{font-family:'Syne',sans-serif}
+
+.header{padding:16px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.hicon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.header h1{font-size:15px;font-weight:700}
+.header p{font-size:11px;color:var(--muted);margin-top:1px}
+
+.body{display:grid;grid-template-columns:300px 1fr;flex:1;overflow:hidden;height:calc(100vh - 61px)}
+
+.sidebar{background:var(--s1);border-right:1px solid var(--border);padding:18px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.slabel{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:12px;color:var(--muted)}
+.field input,.field textarea,.field select{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;outline:none;width:100%;transition:border-color .15s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent)}
+.field textarea{resize:vertical;min-height:75px;line-height:1.55}
+.mono{font-family:'DM Mono',monospace!important;font-size:12px!important;letter-spacing:.03em!important}
+.key-wrap{position:relative}
+.key-wrap input{padding-right:48px}
+.key-show{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;font-family:'DM Sans',sans-serif;padding:3px 6px}
+.key-show:hover{color:var(--text)}
+.hint{background:var(--amber-dim);border:1px solid rgba(251,191,36,0.15);border-radius:var(--r-sm);padding:8px 10px;font-size:12px;color:var(--amber);line-height:1.55}
+.hint code{font-family:'DM Mono',monospace;background:rgba(251,191,36,0.12);padding:1px 5px;border-radius:3px;font-size:11px}
+.divider{border:none;border-top:1px solid var(--border)}
+
+.tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;width:fit-content;margin-bottom:14px}
+.tab{padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:var(--muted);border:none;transition:all .15s;font-family:'DM Sans',sans-serif}
+.tab:not(:last-child){border-right:1px solid var(--border)}
+.tab.active{background:var(--s2);color:var(--text)}
+
+.run-btn{width:100%;height:42px;background:var(--accent);color:white;border:none;border-radius:var(--r-sm);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;margin-top:auto}
+.run-btn:hover:not(:disabled){opacity:.85}
+.run-btn:disabled{opacity:.3;cursor:not-allowed}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.main{overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:18px}
+
+.tip-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;display:flex;gap:9px}
+.tip-box .ti{font-size:16px;flex-shrink:0;margin-top:1px}
+.tip-box .tc{font-size:12px;color:var(--muted);line-height:1.65}
+.tip-box .tc strong{color:var(--text);font-weight:500}
+.tip-box kbd{display:inline-block;background:var(--s3);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)}
+
+.drop-zone{border:1.5px dashed var(--border2);border-radius:var(--r);padding:24px 18px;text-align:center;cursor:pointer;transition:all .15s;position:relative;background:var(--s1)}
+.drop-zone:hover,.drop-zone.over,.drop-zone.focused{border-color:var(--accent);background:var(--accent-dim)}
+.dz-icon{font-size:26px;margin-bottom:5px}
+.dz-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.dz-sub{font-size:12px;color:var(--muted)}
+.paste-btn{display:inline-flex;align-items:center;gap:6px;margin-top:9px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r-sm);padding:6px 14px;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;transition:all .15s}
+.paste-btn:hover{border-color:var(--accent);background:var(--accent-dim)}
+.flash{position:absolute;inset:0;background:rgba(52,211,153,.07);border-radius:inherit;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--green);opacity:0;pointer-events:none;transition:opacity .15s}
+.flash.show{opacity:1}
+
+.previews{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.prev-item{position:relative;width:84px;height:84px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border)}
+.prev-item img{width:100%;height:100%;object-fit:cover}
+.prev-rm{position:absolute;top:3px;right:3px;width:18px;height:18px;background:rgba(0,0,0,.65);border:none;border-radius:50%;color:white;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.prev-rm:hover{background:var(--red)}
+
+.selects-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.select-row{display:flex;flex-direction:column;gap:5px}
+.select-row label{font-size:12px;color:var(--muted)}
+.select-row select{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;outline:none;width:100%;transition:border-color .15s}
+.select-row select:focus{border-color:var(--accent)}
+.prompt-preview{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;min-height:14px}
+
+.log{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);font-family:'DM Mono',monospace;font-size:12px;max-height:150px;overflow-y:auto;display:none}
+.log-inner{padding:11px 13px;display:flex;flex-direction:column;gap:3px}
+.ll{line-height:1.55}.ll.info{color:var(--muted)}.ll.ok{color:var(--green)}.ll.err{color:var(--red)}.ll.bold{color:var(--text);font-weight:500}
+
+.result-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.rc-head{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid var(--border)}
+.rc-head h3{font-size:13px;font-weight:600;font-family:'Syne',sans-serif}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 9px;border-radius:100px}
+.badge.pending{background:var(--amber-dim);color:var(--amber)}
+.badge.done{background:var(--green-dim);color:var(--green)}
+.badge.error{background:var(--red-dim);color:var(--red)}
+.rc-body{padding:11px 15px}
+.prog-row{display:flex;align-items:center;gap:8px;margin-top:5px}
+.prog-lbl{font-size:12px;color:var(--muted);min-width:210px}
+.prog-wrap{flex:1;height:3px;background:var(--s3);border-radius:2px;overflow:hidden}
+.prog-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .4s;width:0%}
+.prog-pct{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;min-width:30px;text-align:right}
+.rc-media img,.rc-media video{width:100%;display:block;border-top:1px solid var(--border)}
+.open-link{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--accent);text-decoration:none;padding:8px 15px}
+.open-link:hover{opacity:.75}
+
+.prompt-list{display:flex;flex-direction:column;gap:7px;margin-bottom:10px}
+.prompt-row{display:flex;align-items:flex-start;gap:8px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 11px}
+.prompt-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
+.prompt-text{font-size:12px;color:var(--muted);line-height:1.5;flex:1;word-break:break-word}
+.prompt-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 4px;flex-shrink:0;line-height:1}
+.prompt-del:hover{color:var(--red)}
+.add-row{display:flex;flex-direction:column;gap:7px}
+.name-row{display:flex;gap:6px}
+.name-row input{flex:0 0 150px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;outline:none}
+.name-row input:focus{border-color:var(--accent)}
+.add-btn{height:36px;padding:0 13px;font-size:13px;font-weight:500;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r-sm);cursor:pointer;color:var(--text);white-space:nowrap;font-family:'DM Sans',sans-serif;flex-shrink:0}
+.add-btn:hover{background:var(--s3)}
+.empty-msg{font-size:12px;color:var(--muted);padding:4px 0}
+.pill{display:inline-flex;align-items:center;background:var(--accent-dim);color:var(--accent);font-size:11px;font-weight:600;padding:2px 7px;border-radius:100px;margin-left:6px}
+
+select option{background:#191c21}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="hicon">🎬</div>
+  <div>
+    <h1>Product Video Tool</h1>
+    <p>Nano Banana Pro → Kling 3.0 &nbsp;·&nbsp; Paste image, pick prompts, run</p>
+  </div>
+</div>
+
+<div class="body">
+  <aside class="sidebar">
+    <div>
+      <div class="slabel">API Key</div>
+      <div class="field">
+        <div class="key-wrap">
+          <input type="password" id="apiKey" class="mono" placeholder="KEY_ID:KEY_SECRET" oninput="saveKey()" />
+          <button class="key-show" id="keyBtn" onclick="toggleKey()">Show</button>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:7px">
+        cloud.higgsfield.ai → API Keys<br>Combine as <code>KEY_ID:KEY_SECRET</code>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div>
+      <div class="slabel">Image Prompt <span style="color:var(--muted);font-size:9px;font-weight:400;text-transform:none;letter-spacing:0">(Nano Banana Pro)</span></div>
+      <div class="field">
+        <select id="imgSel" onchange="updatePreview('img')" style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;outline:none;width:100%">
+          <option value="">— select —</option>
+        </select>
+        <div id="imgPreview" style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;min-height:14px"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="slabel">Animation Prompt <span style="color:var(--muted);font-size:9px;font-weight:400;text-transform:none;letter-spacing:0">(Kling 3.0)</span></div>
+      <div class="field">
+        <select id="vidSel" onchange="updatePreview('vid')" style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;outline:none;width:100%">
+          <option value="">— select —</option>
+        </select>
+        <div id="vidPreview" style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;min-height:14px"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="slabel">Aspect Ratio</div>
+      <div class="field">
+        <select id="ar" style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;outline:none;width:100%">
+          <option value="9:16">9:16 — TikTok / Reels</option>
+          <option value="1:1">1:1 — Square</option>
+          <option value="16:9">16:9 — Landscape</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="run-btn" id="runBtn" onclick="runPipeline()">▶ &nbsp;Run Pipeline</button>
+  </aside>
+
+  <main class="main">
+    <div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">
+        Prompt Library
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('run')">▶ Run</button>
+        <button class="tab" onclick="showTab('img')">📷 Image Prompts</button>
+        <button class="tab" onclick="showTab('vid')">🎬 Animation Prompts</button>
+      </div>
+
+      <!-- RUN TAB -->
+      <div id="tab-run">
+        <div class="tip-box" style="margin-bottom:10px">
+          <span class="ti">💡</span>
+          <div class="tc">
+            <strong>TikTok / websites:</strong> screenshot instead of right-click copy.<br>
+            <strong>Mac:</strong> <kbd>⌘ Shift 4</kbd> → drag over product → <kbd>⌘V</kbd> &nbsp;
+            <strong>Win:</strong> <kbd>Win Shift S</kbd> → drag → <kbd>Ctrl+V</kbd>
+          </div>
+        </div>
+        <div class="drop-zone" id="dropZone" tabindex="0">
+          <div class="flash" id="flash">✓ Image added!</div>
+          <div class="dz-icon">📋</div>
+          <div class="dz-title">Paste, drag & drop, or browse</div>
+          <div class="dz-sub">Screenshot your product first, then paste</div>
+          <div class="paste-btn" onclick="focusDrop()">📋 &nbsp;Click here then Ctrl+V / ⌘V</div>
+        </div>
+        <input type="file" id="fileIn" style="display:none" multiple accept="image/*" onchange="handleFiles(this.files)">
+        <div style="margin-top:6px;text-align:center;font-size:12px;color:var(--muted)">
+          or <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="document.getElementById('fileIn').click()">browse files</span>
+        </div>
+        <div class="previews" id="previews"></div>
+      </div>
+
+      <!-- IMG PROMPTS TAB -->
+      <div id="tab-img" style="display:none">
+        <div class="prompt-list" id="imgList"></div>
+        <div class="add-row">
+          <div class="name-row">
+            <input type="text" id="imgName" placeholder="Name (e.g. Zara Store)" />
+            <button class="add-btn" onclick="addPrompt('img')">+ Add</button>
+          </div>
+          <textarea id="imgText" placeholder="Enter image prompt..." style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;outline:none;width:100%;resize:vertical;min-height:75px;line-height:1.55"></textarea>
+        </div>
+      </div>
+
+      <!-- VID PROMPTS TAB -->
+      <div id="tab-vid" style="display:none">
+        <div class="prompt-list" id="vidList"></div>
+        <div class="add-row">
+          <div class="name-row">
+            <input type="text" id="vidName" placeholder="Name (e.g. Hand Poke Zoom)" />
+            <button class="add-btn" onclick="addPrompt('vid')">+ Add</button>
+          </div>
+          <textarea id="vidText" placeholder="Enter animation prompt..." style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;outline:none;width:100%;resize:vertical;min-height:75px;line-height:1.55"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="log" id="logBox"><div class="log-inner" id="logInner"></div></div>
+    <div id="results"></div>
+  </main>
+</div>
+
+<script>
+  const API = '/api/higgsfield';
+  const files = [];
+  let imgPrompts = [], vidPrompts = [];
+  let keyVis = false;
+
+  // --- Storage ---
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } }
+
+  function init() {
+    imgPrompts = load('hf_img') || [];
+    vidPrompts = load('hf_vid') || [];
+    const key = load('hf_key');
+    if (key) document.getElementById('apiKey').value = key;
+    renderList('img'); renderList('vid'); renderSelects();
+  }
+
+  function saveKey() { save('hf_key', document.getElementById('apiKey').value.trim()); }
+  function toggleKey() {
+    keyVis = !keyVis;
+    document.getElementById('apiKey').type = keyVis ? 'text' : 'password';
+    document.getElementById('keyBtn').textContent = keyVis ? 'Hide' : 'Show';
+  }
+
+  // --- Tabs ---
+  function showTab(name) {
+    ['run','img','vid'].forEach(t => document.getElementById('tab-'+t).style.display = 'none');
+    document.getElementById('tab-'+name).style.display = 'block';
+    document.querySelectorAll('.tab').forEach((b,i) => b.classList.toggle('active', ['run','img','vid'][i] === name));
+  }
+
+  // --- Prompt library ---
+  function addPrompt(type) {
+    const name = document.getElementById(type+'Name').value.trim();
+    const text = document.getElementById(type+'Text').value.trim();
+    if (!name || !text) { alert('Enter both a name and prompt text.'); return; }
+    const list = type === 'img' ? imgPrompts : vidPrompts;
+    list.push({ id: Date.now(), name, text });
+    save('hf_'+type, list);
+    renderList(type); renderSelects();
+    document.getElementById(type+'Name').value = '';
+    document.getElementById(type+'Text').value = '';
+  }
+
+  function deletePrompt(type, id) {
+    if (type === 'img') imgPrompts = imgPrompts.filter(p => p.id !== id);
+    else vidPrompts = vidPrompts.filter(p => p.id !== id);
+    save('hf_'+type, type === 'img' ? imgPrompts : vidPrompts);
+    renderList(type); renderSelects();
+  }
+
+  function renderList(type) {
+    const list = type === 'img' ? imgPrompts : vidPrompts;
+    const el = document.getElementById(type+'List');
+    el.innerHTML = '';
+    if (!list.length) { el.innerHTML = '<div class="empty-msg">No prompts yet. Add one below.</div>'; return; }
+    list.forEach(p => {
+      const row = document.createElement('div'); row.className = 'prompt-row';
+      row.innerHTML = `<div class="prompt-text"><div class="prompt-name">${p.name}</div>${p.text}</div>
+        <button class="prompt-del" onclick="deletePrompt('${type}',${p.id})">🗑</button>`;
+      el.appendChild(row);
+    });
+  }
+
+  function renderSelects() {
+    const is = document.getElementById('imgSel'), vs = document.getElementById('vidSel');
+    const iv = is.value, vv = vs.value;
+    is.innerHTML = '<option value="">— select image prompt —</option>';
+    vs.innerHTML = '<option value="">— select animation prompt —</option>';
+    imgPrompts.forEach(p => { const o = document.createElement('option'); o.value=p.id; o.textContent=p.name; is.appendChild(o); });
+    vidPrompts.forEach(p => { const o = document.createElement('option'); o.value=p.id; o.textContent=p.name; vs.appendChild(o); });
+    if (iv) is.value = iv;
+    if (vv) vs.value = vv;
+    updatePreview('img'); updatePreview('vid');
+  }
+
+  function updatePreview(type) {
+    const sel = document.getElementById(type+'Sel');
+    const prev = document.getElementById(type+'Preview');
+    const id = parseInt(sel.value);
+    const list = type === 'img' ? imgPrompts : vidPrompts;
+    const found = list.find(p => p.id === id);
+    prev.textContent = found ? found.text.slice(0,90)+(found.text.length>90?'…':'') : '';
+  }
+
+  // --- Image drop/paste ---
+  function updatePill() {
+    const p = document.getElementById('imgPill');
+    if (p) { if (files.length > 0) { p.style.display='inline-flex'; p.textContent=files.length+(files.length===1?' image':' images'); } else p.style.display='none'; }
+  }
+
+  function addImage(file) {
+    if (!file || !file.type.startsWith('image/')) return false;
+    files.push(file);
+    const g = document.getElementById('previews');
+    const w = document.createElement('div'); w.className = 'prev-item';
+    const img = document.createElement('img'); img.src = URL.createObjectURL(file);
+    const idx = files.length - 1;
+    const rm = document.createElement('button'); rm.className = 'prev-rm'; rm.textContent = '×';
+    rm.onclick = e => { e.stopPropagation(); files.splice(idx,1); w.remove(); };
+    w.appendChild(img); w.appendChild(rm); g.appendChild(w);
+    return true;
+  }
+
+  function handleFiles(list) { Array.from(list).forEach(f => addImage(f)); }
+
+  function focusDrop() {
+    const d = document.getElementById('dropZone');
+    d.classList.add('focused'); d.focus();
+    setTimeout(() => d.classList.remove('focused'), 3000);
+  }
+
+  function showFlash() {
+    const f = document.getElementById('flash');
+    f.classList.add('show'); setTimeout(() => f.classList.remove('show'), 1100);
+  }
+
+  document.addEventListener('paste', e => {
+    const items = (e.clipboardData||window.clipboardData)?.items;
+    if (!items) return;
+    let found = false;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const blob = item.getAsFile();
+        if (blob && addImage(blob)) { found=true; showFlash(); }
+      }
+    }
+    if (!found) log('No image in clipboard — screenshot first then paste.','err');
+  });
+
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); handleFiles(e.dataTransfer.files); });
+
+  // --- Log ---
+  function log(msg, type='info') {
+    const box = document.getElementById('logBox'); box.style.display='block';
+    const inner = document.getElementById('logInner');
+    const l = document.createElement('div'); l.className='ll '+type; l.textContent=msg;
+    inner.appendChild(l); box.scrollTop=box.scrollHeight;
+  }
+  function clearLog() { document.getElementById('logInner').innerHTML=''; document.getElementById('logBox').style.display='none'; }
+
+  // --- Pipeline ---
+  async function apiCall(action, body, extraQuery='') {
+    const key = document.getElementById('apiKey').value.trim();
+    const isFile = body instanceof Uint8Array || body instanceof ArrayBuffer || ArrayBuffer.isView(body);
+    const url = `${API}?action=${action}${extraQuery}`;
+    const opts = {
+      method: 'POST',
+      headers: { 'x-higgsfield-key': key }
+    };
+    if (isFile) {
+      opts.body = body;
+    } else {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    const r = await fetch(url, opts);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || JSON.stringify(data));
+    return data;
+  }
+
+  async function pollJob(jobId, barEl, pctEl, startPct, endPct) {
+    const maxMs = 360000, stepMs = 5000;
+    let elapsed = 0;
+    while (elapsed < maxMs) {
+      await new Promise(r => setTimeout(r, stepMs));
+      elapsed += stepMs;
+      const pct = Math.min(endPct - 1, Math.round(startPct + (elapsed/maxMs)*(endPct-startPct)));
+      if (barEl) barEl.style.width = pct+'%';
+      if (pctEl) pctEl.textContent = pct+'%';
+      const data = await apiCall('job-status', {}, `&job_id=${jobId}`).catch(() => null);
+      if (!data) continue;
+      const st = (data.status||data.state||'').toLowerCase();
+      if (['completed','done','succeeded','success'].includes(st)) {
+        if (barEl) barEl.style.width = endPct+'%';
+        if (pctEl) pctEl.textContent = endPct+'%';
+        return data.results?.[0] || data.result || data.output || data;
+      }
+      if (['failed','error','cancelled'].includes(st)) throw new Error('Job failed: '+(data.error||data.message||st));
+    }
+    throw new Error('Timed out after 6 minutes');
+  }
+
+  async function runPipeline() {
+    const key = document.getElementById('apiKey').value.trim();
+    const imgId = parseInt(document.getElementById('imgSel').value);
+    const vidId = parseInt(document.getElementById('vidSel').value);
+    const ar = document.getElementById('ar').value;
+
+    if (!key) { alert('Enter your Higgsfield API key.'); return; }
+    if (!key.includes(':')) { alert('Format: KEY_ID:KEY_SECRET'); return; }
+    if (files.length === 0) { alert('Add at least one image first.'); return; }
+    if (!imgId) { alert('Select an image prompt.'); return; }
+    if (!vidId) { alert('Select an animation prompt.'); return; }
+
+    const imgPrompt = imgPrompts.find(p => p.id === imgId)?.text;
+    const vidPrompt = vidPrompts.find(p => p.id === vidId)?.text;
+    if (!imgPrompt || !vidPrompt) { alert('Prompt not found — re-select.'); return; }
+
+    const btn = document.getElementById('runBtn');
+    btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> &nbsp;Running...';
+    clearLog();
+    document.getElementById('results').innerHTML = '';
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const label = `Image ${i+1}`;
+        log(`── ${label} of ${files.length} ──`, 'bold');
+
+        const rc = document.createElement('div'); rc.className='result-card';
+        rc.innerHTML = `
+          <div class="rc-head"><h3>${label}</h3><span class="badge pending" id="badge${i}">⏳ Processing</span></div>
+          <div class="rc-body">
+            <div class="prog-row">
+              <span class="prog-lbl" id="pl${i}">Uploading image...</span>
+              <div class="prog-wrap"><div class="prog-bar" id="bar${i}"></div></div>
+              <span class="prog-pct" id="pct${i}">0%</span>
+            </div>
+          </div>
+          <div id="media${i}"></div>`;
+        document.getElementById('results').appendChild(rc);
+
+        const bar = document.getElementById('bar'+i);
+        const pct = document.getElementById('pct'+i);
+        const pl = document.getElementById('pl'+i);
+        const file = files[i];
+        const mime = file.type || 'image/png';
+        const ext = mime.split('/')[1] || 'png';
+
+        // Step 1: Init upload
+        log('📤 Getting upload URL...');
+        const initData = await apiCall('upload-init', { filename: `product-${Date.now()}.${ext}`, content_type: mime });
+        const { media_id, upload_url } = initData;
+        if (!upload_url) throw new Error('No upload_url returned: ' + JSON.stringify(initData));
+        bar.style.width='10%'; pct.textContent='10%';
+
+        // Step 2: Upload file bytes via proxy
+        log('⬆️  Uploading image...');
+        const arrayBuf = await file.arrayBuffer();
+        const uploadResp = await fetch(`${API}?action=upload-file&content_type=${encodeURIComponent(mime)}&upload_url=${encodeURIComponent(upload_url)}`, {
+          method: 'POST',
+          headers: { 'x-higgsfield-key': key, 'Content-Type': mime },
+          body: arrayBuf
+        });
+        if (!uploadResp.ok) { const e = await uploadResp.json(); throw new Error('Upload failed: '+(e.error||uploadResp.status)); }
+        bar.style.width='20%'; pct.textContent='20%';
+
+        // Step 3: Confirm
+        log('✅ Confirming upload...');
+        const confirmed = await apiCall('upload-confirm', { media_id });
+        const finalId = confirmed.media_id || confirmed.id || media_id;
+        log('✅ Upload confirmed — '+finalId.slice(0,8)+'...', 'ok');
+        bar.style.width='25%'; pct.textContent='25%';
+
+        // Step 4: Nano Banana Pro
+        pl.textContent = '2/3 — Generating with Nano Banana Pro';
+        log('🎨 Submitting Nano Banana Pro job...');
+        const imgJob = await apiCall('job-submit', {
+          model: 'nano_banana_2', prompt: imgPrompt,
+          medias: [{ value: finalId, role: 'image' }]
+        });
+        const imgJobId = imgJob.id || imgJob.job_id;
+        log('🕐 Image job: '+imgJobId.slice(0,8)+'...');
+        const imgResult = await pollJob(imgJobId, bar, pct, 25, 60);
+        const genImgUrl = imgResult?.url || imgResult?.image_url || (typeof imgResult==='string'?imgResult:null);
+        if (!genImgUrl) throw new Error('No image URL. Got: '+JSON.stringify(imgResult).slice(0,200));
+        log('✅ Image generated!', 'ok');
+
+        const imgEl = document.createElement('img'); imgEl.src=genImgUrl; imgEl.alt='Generated product';
+        document.getElementById('media'+i).appendChild(imgEl);
+
+        // Step 5: Kling 3.0
+        pl.textContent = '3/3 — Animating with Kling 3.0';
+        log('🎬 Submitting Kling 3.0 job...');
+        const vidJob = await apiCall('job-submit', {
+          model: 'kling3_0', prompt: vidPrompt, aspect_ratio: ar,
+          medias: [{ value: imgJobId, role: 'start_image' }]
+        });
+        const vidJobId = vidJob.id || vidJob.job_id;
+        log('🕐 Video job: '+vidJobId.slice(0,8)+'...');
+        const vidResult = await pollJob(vidJobId, bar, pct, 60, 100);
+        const videoUrl = vidResult?.url || vidResult?.video_url || (typeof vidResult==='string'?vidResult:null);
+        if (!videoUrl) throw new Error('No video URL. Got: '+JSON.stringify(vidResult).slice(0,200));
+        log('🎉 Video ready!', 'ok');
+
+        document.getElementById('badge'+i).className='badge done';
+        document.getElementById('badge'+i).textContent='✓ Done';
+        pl.textContent='Complete';
+
+        const vid = document.createElement('video');
+        vid.src=videoUrl; vid.controls=true; vid.autoplay=true; vid.loop=true; vid.muted=true;
+        document.getElementById('media'+i).appendChild(vid);
+        const linkDiv = document.createElement('div');
+        const link = document.createElement('a');
+        link.href=videoUrl; link.target='_blank'; link.className='open-link';
+        link.textContent='↗ Open video in new tab';
+        linkDiv.appendChild(link); rc.appendChild(linkDiv);
+      }
+      log('🎉 All done! '+files.length+' video(s) generated.', 'ok');
+    } catch(err) {
+      log('❌ '+err.message, 'err');
+      document.querySelectorAll('.badge.pending').forEach(b => { b.className='badge error'; b.textContent='✕ Failed'; });
+    } finally {
+      btn.disabled=false; btn.innerHTML='▶ &nbsp;Run Pipeline';
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
