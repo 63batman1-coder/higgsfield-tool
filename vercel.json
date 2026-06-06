@@ -4,8 +4,8 @@
       "maxDuration": 300
     }
   },
-  "rewrites": [
-    { "source": "/api/higgsfield", "destination": "/api/higgsfield" },
-    { "source": "/(.*)", "destination": "/public/index.html" }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/public/index.html" }
   ]
 }
