@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/higgsfield.js": {
+      "maxDuration": 300
+    }
+  }
+}
