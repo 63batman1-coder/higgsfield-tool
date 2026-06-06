@@ -501,15 +501,15 @@ select option{background:#191c21}
         if (!upload_url) throw new Error('No upload_url returned: ' + JSON.stringify(initData));
         bar.style.width='10%'; pct.textContent='10%';
 
-        // Step 2: Upload file bytes via proxy
-        log('⬆️  Uploading image...');
+        // Step 2: Upload DIRECTLY to S3 from browser
+        log('⬆️  Uploading directly to storage...');
         const arrayBuf = await file.arrayBuffer();
-        const uploadResp = await fetch(`${API}?action=upload-file&key=${encodeURIComponent(key)}&content_type=${encodeURIComponent(mime)}&upload_url=${encodeURIComponent(upload_url)}`, {
-          method: 'POST',
-          headers: { 'x-higgsfield-key': key, 'Content-Type': mime },
+        const uploadResp = await fetch(upload_url, {
+          method: 'PUT',
+          headers: { 'Content-Type': mime },
           body: arrayBuf
         });
-        if (!uploadResp.ok) { const e = await uploadResp.json(); throw new Error('Upload failed: '+(e.error||uploadResp.status)); }
+        if (!uploadResp.ok) throw new Error('S3 upload failed: ' + uploadResp.status);
         bar.style.width='20%'; pct.textContent='20%';
 
         // Step 3: Confirm
