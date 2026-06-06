@@ -1,26 +1,28 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-higgsfield-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { action } = req.query;
-  const apiKey = req.headers['x-higgsfield-key'] || req.query.key;
-  if (!apiKey) return res.status(400).json({ error: 'Missing API key' });
+  const apiKey = req.headers['x-higgsfield-key'];
+  if (!apiKey) return res.status(400).json({ error: 'Missing API key header' });
 
-  const BASE = 'https://api.higgsfield.ai';
-  const authHeaders = { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+  const BASE = 'https://cloud.higgsfield.ai';
+  const authHeaders = { 'Authorization': `Key ${apiKey}`, 'Content-Type': 'application/json' };
 
   try {
     // 1. Get upload URL
     if (action === 'upload-init') {
-      const { filename, content_type } = req.query;
+      const body = await readBody(req);
+      const { filename, content_type } = JSON.parse(body);
       const r = await fetch(`${BASE}/v1/media/upload`, {
-        method: 'POST', headers: authHeaders,
+        method: 'POST',
+        headers: authHeaders,
         body: JSON.stringify({ filename, content_type })
       });
       const text = await r.text();
-      if (!r.ok) return res.status(r.status).json({ error: text });
+      if (!r.ok) return res.status(r.status).send(text);
       return res.status(200).json(JSON.parse(text));
     }
 
@@ -35,39 +37,48 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': decodeURIComponent(content_type) },
         body: fileBody
       });
-      if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+      if (!r.ok) {
+        const txt = await r.text();
+        return res.status(r.status).json({ error: txt });
+      }
       return res.status(200).json({ success: true });
     }
 
     // 3. Confirm upload
     if (action === 'upload-confirm') {
-      const { media_id } = req.query;
+      const body = await readBody(req);
+      const { media_id } = JSON.parse(body);
       const r = await fetch(`${BASE}/v1/media/confirm`, {
-        method: 'POST', headers: authHeaders,
+        method: 'POST',
+        headers: authHeaders,
         body: JSON.stringify({ media_id, type: 'image' })
       });
       const text = await r.text();
-      if (!r.ok) return res.status(r.status).json({ error: text });
+      if (!r.ok) return res.status(r.status).send(text);
       return res.status(200).json(JSON.parse(text));
     }
 
     // 4. Submit job
     if (action === 'job-submit') {
-      const raw = await readBody(req);
+      const body = await readBody(req);
       const r = await fetch(`${BASE}/v1/jobs`, {
-        method: 'POST', headers: authHeaders, body: raw
+        method: 'POST',
+        headers: authHeaders,
+        body: body
       });
       const text = await r.text();
-      if (!r.ok) return res.status(r.status).json({ error: text });
+      if (!r.ok) return res.status(r.status).send(text);
       return res.status(200).json(JSON.parse(text));
     }
 
-    // 5. Poll job
+    // 5. Poll job status
     if (action === 'job-status') {
       const { job_id } = req.query;
-      const r = await fetch(`${BASE}/v1/jobs/${job_id}`, { headers: authHeaders });
+      const r = await fetch(`${BASE}/v1/jobs/${job_id}`, {
+        headers: authHeaders
+      });
       const text = await r.text();
-      if (!r.ok) return res.status(r.status).json({ error: text });
+      if (!r.ok) return res.status(r.status).send(text);
       return res.status(200).json(JSON.parse(text));
     }
 
@@ -78,11 +89,12 @@ export default async function handler(req, res) {
   }
 }
 
+// Read raw request body
 function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on('data', c => chunks.push(c));
-    req.on('end', () => resolve(Buffer.concat(chunks).toString().trim() || '{}'));
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString()));
     req.on('error', reject);
   });
 }
