@@ -4,8 +4,8 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-higgsfield-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { action } = req.query;
-  const apiKey = req.headers['x-higgsfield-key'];
+  const { action, key } = req.query;
+  const apiKey = key || req.headers['x-higgsfield-key'];
   if (!apiKey) return res.status(400).json({ error: 'Missing API key header' });
 
   const BASE = 'https://cloud.higgsfield.ai';
