@@ -495,7 +495,8 @@ select option{background:#191c21}
 
         // Step 1: Init upload
         log('📤 Getting upload URL...');
-        const initData = await apiCall('upload-init', { filename: `product-${Date.now()}.${ext}`, content_type: mime });
+        const fname = `product-${Date.now()}.${ext}`;
+        const initData = await apiCall('upload-init', { filename: fname, content_type: mime }, `&filename=${encodeURIComponent(fname)}&content_type=${encodeURIComponent(mime)}`);
         const { media_id, upload_url } = initData;
         if (!upload_url) throw new Error('No upload_url returned: ' + JSON.stringify(initData));
         bar.style.width='10%'; pct.textContent='10%';
