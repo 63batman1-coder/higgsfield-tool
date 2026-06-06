@@ -372,8 +372,13 @@ select option{background:#191c21}
   }
 
   document.addEventListener('paste', e => {
+    const tag = document.activeElement?.tagName?.toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
     const items = (e.clipboardData||window.clipboardData)?.items;
     if (!items) return;
+    let hasImage = false;
+    for (const item of items) { if (item.type.startsWith('image/')) { hasImage = true; break; } }
+    if (!hasImage) return;
     let found = false;
     for (const item of items) {
       if (item.type.startsWith('image/')) {
@@ -403,7 +408,7 @@ select option{background:#191c21}
   async function apiCall(action, body, extraQuery='') {
     const key = document.getElementById('apiKey').value.trim();
     const isFile = body instanceof Uint8Array || body instanceof ArrayBuffer || ArrayBuffer.isView(body);
-    const url = `${API}?action=${action}${extraQuery}`;
+    const url = `${API}?action=${action}&key=${encodeURIComponent(key)}${extraQuery}`;
     const opts = {
       method: 'POST',
       headers: { 'x-higgsfield-key': key }
@@ -498,7 +503,7 @@ select option{background:#191c21}
         // Step 2: Upload file bytes via proxy
         log('⬆️  Uploading image...');
         const arrayBuf = await file.arrayBuffer();
-        const uploadResp = await fetch(`${API}?action=upload-file&content_type=${encodeURIComponent(mime)}&upload_url=${encodeURIComponent(upload_url)}`, {
+        const uploadResp = await fetch(`${API}?action=upload-file&key=${encodeURIComponent(key)}&content_type=${encodeURIComponent(mime)}&upload_url=${encodeURIComponent(upload_url)}`, {
           method: 'POST',
           headers: { 'x-higgsfield-key': key, 'Content-Type': mime },
           body: arrayBuf
