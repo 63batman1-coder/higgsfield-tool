@@ -1,32 +1,38 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-higgsfield-key');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   const { action } = req.query;
-  const apiKey = req.headers['x-higgsfield-key'];
-  if (!apiKey) return res.status(400).json({ error: 'Missing API key header' });
+  const apiKey = req.headers['x-higgsfield-key'] || req.query.key;
+  
+  if (!apiKey) return res.status(400).json({ error: 'Missing API key' });
 
   const BASE = 'https://cloud.higgsfield.ai';
-  const authHeaders = { 'Authorization': `Key ${apiKey}`, 'Content-Type': 'application/json' };
+  const authHeaders = { 
+    'Authorization': `Key ${apiKey}`, 
+    'Content-Type': 'application/json' 
+  };
 
   try {
-    // 1. Get upload URL
     if (action === 'upload-init') {
       const body = await readBody(req);
-      const { filename, content_type } = JSON.parse(body);
+      const parsed = JSON.parse(body);
       const r = await fetch(`${BASE}/v1/media/upload`, {
         method: 'POST',
         headers: authHeaders,
-        body: JSON.stringify({ filename, content_type })
+        body: JSON.stringify({ filename: parsed.filename, content_type: parsed.content_type })
       });
       const text = await r.text();
-      if (!r.ok) return res.status(r.status).send(text);
+      if (!r.ok) return res.status(r.status).json({ error: text });
       return res.status(200).json(JSON.parse(text));
     }
 
-    // 2. Proxy file upload to S3
     if (action === 'upload-file') {
       const { upload_url, content_type } = req.query;
       const chunks = [];
@@ -44,21 +50,19 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // 3. Confirm upload
     if (action === 'upload-confirm') {
       const body = await readBody(req);
-      const { media_id } = JSON.parse(body);
+      const parsed = JSON.parse(body);
       const r = await fetch(`${BASE}/v1/media/confirm`, {
         method: 'POST',
         headers: authHeaders,
-        body: JSON.stringify({ media_id, type: 'image' })
+        body: JSON.stringify({ media_id: parsed.media_id, type: 'image' })
       });
       const text = await r.text();
-      if (!r.ok) return res.status(r.status).send(text);
+      if (!r.ok) return res.status(r.status).json({ error: text });
       return res.status(200).json(JSON.parse(text));
     }
 
-    // 4. Submit job
     if (action === 'job-submit') {
       const body = await readBody(req);
       const r = await fetch(`${BASE}/v1/jobs`, {
@@ -67,29 +71,25 @@ export default async function handler(req, res) {
         body: body
       });
       const text = await r.text();
-      if (!r.ok) return res.status(r.status).send(text);
+      if (!r.ok) return res.status(r.status).json({ error: text });
       return res.status(200).json(JSON.parse(text));
     }
 
-    // 5. Poll job status
     if (action === 'job-status') {
       const { job_id } = req.query;
-      const r = await fetch(`${BASE}/v1/jobs/${job_id}`, {
-        headers: authHeaders
-      });
+      const r = await fetch(`${BASE}/v1/jobs/${job_id}`, { headers: authHeaders });
       const text = await r.text();
-      if (!r.ok) return res.status(r.status).send(text);
+      if (!r.ok) return res.status(r.status).json({ error: text });
       return res.status(200).json(JSON.parse(text));
     }
 
     return res.status(400).json({ error: `Unknown action: ${action}` });
 
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message, stack: err.stack });
   }
 }
 
-// Read raw request body
 function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
