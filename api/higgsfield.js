@@ -8,64 +8,72 @@ export default async function handler(req, res) {
   const apiKey = key || req.headers['x-higgsfield-key'];
   if (!apiKey) return res.status(400).json({ error: 'Missing API key' });
 
+  // Split KEY_ID:KEY_SECRET into separate headers
+  const [keyId, keySecret] = apiKey.split(':');
+  
   const BASE = 'https://platform.higgsfield.ai';
-  const auth = { 'Authorization': `Key ${apiKey}`, 'Content-Type': 'application/json' };
+  const auth = {
+    'hf-api-key': keyId,
+    'hf-secret': keySecret || keyId,
+    'Content-Type': 'application/json'
+  };
 
   try {
     // Get presigned upload URL
     if (action === 'upload-init') {
-      const { filename, content_type } = req.query;
-      const r = await fetch(`${BASE}/media/batch`, {
+      const { content_type } = req.query;
+      const r = await fetch(`${BASE}/files/generate-upload-url`, {
         method: 'POST', headers: auth,
-        body: JSON.stringify([{ filename, content_type }])
-      });
-      const text = await r.text();
-      if (!r.ok) return res.status(r.status).json({ error: text, endpoint: '/media/batch' });
-      const data = JSON.parse(text);
-      // batch returns array, normalize to single object with media_id and upload_url
-      const item = Array.isArray(data) ? data[0] : data;
-      return res.status(200).json({
-        media_id: item.media_id || item.id,
-        upload_url: item.upload_url || item.presigned_url || item.url
-      });
-    }
-
-    // Confirm upload
-    if (action === 'upload-confirm') {
-      const { media_id } = req.query;
-      const r = await fetch(`${BASE}/media/${media_id}/confirm`, {
-        method: 'POST', headers: auth,
-        body: JSON.stringify({ type: 'image' })
+        body: JSON.stringify({ content_type })
       });
       const text = await r.text();
       if (!r.ok) return res.status(r.status).json({ error: text });
-      return res.status(200).json(text ? JSON.parse(text) : { media_id });
+      const data = JSON.parse(text);
+      return res.status(200).json({
+        upload_url: data.upload_url,
+        public_url: data.public_url,
+        media_id: data.public_url // use public_url as the media reference
+      });
     }
 
-    // Submit job
+    // Submit image generation job (Nano Banana Pro)
     if (action === 'job-submit') {
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
-      const body = Buffer.concat(chunks).toString() || '{}';
-      const parsed = JSON.parse(body);
-      const model = parsed.model;
-      // Jobs use model path as endpoint
-      const r = await fetch(`${BASE}/jobs/v2/${model}`, {
+      const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
+      const { model, prompt, medias, aspect_ratio } = body;
+
+      // Build model-specific payload
+      let endpoint, payload;
+      if (model === 'nano_banana_2') {
+        endpoint = '/v1/image-to-image/nano-banana';
+        payload = { params: { prompt, input_images: medias?.map(m => ({ type: 'image_url', image_url: m.value })) } };
+      } else if (model === 'kling3_0') {
+        endpoint = '/v1/image-to-video/kling/v3';
+        payload = { params: { prompt, aspect_ratio, input_images: medias?.map(m => ({ type: 'image_url', image_url: m.value })) } };
+      } else {
+        endpoint = `/v1/${model}`;
+        payload = { params: body };
+      }
+
+      const r = await fetch(`${BASE}${endpoint}`, {
         method: 'POST', headers: auth,
-        body: JSON.stringify({ params: parsed })
+        body: JSON.stringify(payload)
       });
       const text = await r.text();
       if (!r.ok) return res.status(r.status).json({ error: text });
-      return res.status(200).json(JSON.parse(text));
+      const data = JSON.parse(text);
+      return res.status(200).json({ id: data.id || data.job_id || data.request_id, ...data });
     }
 
     // Poll job status
     if (action === 'job-status') {
       const { job_id } = req.query;
-      const r = await fetch(`${BASE}/jobs/${job_id}`, { headers: auth });
+      const r = await fetch(`${BASE}/v1/requests/${job_id}/status`, { headers: auth });
       const text = await r.text();
       if (!r.ok) return res.status(r.status).json({ error: text });
-      return res.status(200).json(JSON.parse(text));
+      const data = JSON.parse(text);
+      return res.status(200).json(data);
     }
 
     return res.status(400).json({ error: `Unknown action: ${action}` });
