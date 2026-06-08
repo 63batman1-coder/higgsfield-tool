@@ -512,9 +512,11 @@ select option{background:#191c21}
         if (!uploadResp.ok) throw new Error('S3 upload failed: ' + uploadResp.status);
         bar.style.width='20%'; pct.textContent='20%';
 
-        // Step 3: Use public_url as media reference (no confirm needed)
-        const finalId = initData.public_url || media_id;
-        log('✅ Upload complete — ready for generation', 'ok');
+        // Step 3: Confirm upload
+        log('✅ Confirming upload...');
+        const confirmed = await apiCall('upload-confirm', {}, `&media_id=${encodeURIComponent(media_id)}`);
+        const finalId = initData.public_url || confirmed.media_id || media_id;
+        log('✅ Upload confirmed — ready for generation', 'ok');
         bar.style.width='25%'; pct.textContent='25%';
 
         // Step 4: Nano Banana Pro
