@@ -27,9 +27,8 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 .sidebar{background:var(--s1);border-right:1px solid var(--border);padding:18px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
 .slabel{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
 .field{display:flex;flex-direction:column;gap:5px}
-.field input,.field textarea,.field select{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;outline:none;width:100%;transition:border-color .15s}
-.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent)}
-.field textarea{resize:vertical;min-height:75px;line-height:1.55}
+.field select{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;outline:none;width:100%;transition:border-color .15s}
+.field select:focus{border-color:var(--accent)}
 .divider{border:none;border-top:1px solid var(--border)}
 .tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;width:fit-content;margin-bottom:14px}
 .tab{padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:var(--muted);border:none;transition:all .15s;font-family:'DM Sans',sans-serif}
@@ -41,12 +40,29 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .main{overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:18px}
-.tip-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;display:flex;gap:9px}
-.tip-box .ti{font-size:16px;flex-shrink:0;margin-top:1px}
-.tip-box .tc{font-size:12px;color:var(--muted);line-height:1.65}
-.tip-box .tc strong{color:var(--text);font-weight:500}
-.url-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
-.url-card-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px}
+
+/* IMAGE INPUT AREA */
+.img-input-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.img-input-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+.img-count{background:var(--accent-dim);color:var(--accent);font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px}
+.img-input-sub{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+.img-input-sub kbd{display:inline-block;background:var(--s2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)}
+
+/* PASTE ZONE */
+.paste-zone{border:1.5px dashed var(--border2);border-radius:var(--r-sm);padding:20px 16px;text-align:center;cursor:pointer;transition:all .15s;position:relative;background:var(--s2)}
+.paste-zone:hover,.paste-zone.focused,.paste-zone.drag-over{border-color:var(--accent);background:var(--accent-dim)}
+.paste-zone-icon{font-size:24px;margin-bottom:6px}
+.paste-zone-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.paste-zone-sub{font-size:12px;color:var(--muted)}
+.paste-trigger{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-sm);padding:7px 16px;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;transition:all .15s}
+.paste-trigger:hover{border-color:var(--accent);background:var(--accent-dim)}
+.paste-flash{position:absolute;inset:0;background:rgba(52,211,153,.07);border-radius:inherit;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--green);opacity:0;pointer-events:none;transition:opacity .15s}
+.paste-flash.show{opacity:1}
+
+/* URL INPUT ROW */
+.url-section{margin-top:14px}
+.url-section-label{font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.url-section-label::after{content:'';flex:1;height:1px;background:var(--border)}
 .url-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
 .url-row input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;outline:none;transition:border-color .15s}
 .url-row input:focus{border-color:var(--accent)}
@@ -54,6 +70,15 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 .url-rm:hover{color:var(--red)}
 .add-url-btn{display:flex;align-items:center;gap:6px;width:100%;padding:8px 12px;background:none;border:1px dashed var(--border2);border-radius:var(--r-sm);color:var(--accent);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;margin-top:4px}
 .add-url-btn:hover{border-color:var(--accent);background:var(--accent-dim)}
+
+/* IMAGE PREVIEWS */
+.previews{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.prev-item{position:relative;width:80px;height:80px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border)}
+.prev-item img{width:100%;height:100%;object-fit:cover}
+.prev-rm{position:absolute;top:3px;right:3px;width:18px;height:18px;background:rgba(0,0,0,.65);border:none;border-radius:50%;color:white;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.prev-rm:hover{background:var(--red)}
+.prev-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);font-size:9px;color:white;padding:2px 4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 .log{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);font-family:'DM Mono',monospace;font-size:12px;max-height:150px;overflow-y:auto;display:none}
 .log-inner{padding:11px 13px;display:flex;flex-direction:column;gap:3px}
 .ll{line-height:1.55}.ll.info{color:var(--muted)}.ll.ok{color:var(--green)}.ll.err{color:var(--red)}.ll.bold{color:var(--text);font-weight:500}
@@ -97,7 +122,7 @@ select option{background:#191c21}
   <div class="hicon">🎬</div>
   <div>
     <h1>Product Video Tool</h1>
-    <p>Nano Banana Pro → Kling 3.0 · Paste URLs, pick prompts, run</p>
+    <p>Nano Banana Pro → Kling 3.0 · Paste or URL · Pick prompts · Run</p>
   </div>
 </div>
 <div class="body">
@@ -144,22 +169,40 @@ select option{background:#191c21}
 
       <!-- RUN TAB -->
       <div id="tab-run">
-        <div class="tip-box" style="margin-bottom:12px">
-          <span class="ti">💡</span>
-          <div class="tc">
-            <strong>Right-click any product image → Copy Image Address</strong> → paste the URL below.<br>
-            Add multiple URLs to batch generate several videos at once.
+        <div class="img-input-card">
+          <div class="img-input-title">
+            Product Images
+            <span class="img-count" id="imgCount" style="display:none">0 images</span>
           </div>
-        </div>
-        <div class="url-card">
-          <div class="url-card-title">Product Image URLs</div>
-          <div id="urlsGrid">
-            <div class="url-row">
-              <input type="url" class="img-url" placeholder="Paste image URL here..." />
-              <button class="url-rm" onclick="removeUrl(this)">×</button>
+          <div class="img-input-sub">
+            <strong style="color:var(--text)">Option 1 — Paste image:</strong> Right-click product → <strong style="color:var(--text)">Copy Image</strong> → click below → <kbd>⌘V</kbd> or <kbd>Ctrl+V</kbd><br>
+            <strong style="color:var(--text)">Mac screenshot:</strong> <kbd>⌘ Shift 4</kbd> → drag over product → auto-copies → paste below<br>
+            <strong style="color:var(--text)">Option 2 — Paste URL:</strong> Right-click → <strong style="color:var(--text)">Copy Image Address</strong> → paste in URL field
+          </div>
+
+          <!-- PASTE ZONE -->
+          <div class="paste-zone" id="pasteZone" tabindex="0">
+            <div class="paste-flash" id="pasteFlash">✓ Image added!</div>
+            <div class="paste-zone-icon">📋</div>
+            <div class="paste-zone-title">Paste image here</div>
+            <div class="paste-zone-sub">After copying an image or taking a screenshot</div>
+            <div class="paste-trigger" onclick="focusPaste()">📋 &nbsp;Click here, then Ctrl+V / ⌘V</div>
+          </div>
+
+          <!-- IMAGE PREVIEWS -->
+          <div class="previews" id="previews"></div>
+
+          <!-- URL INPUT -->
+          <div class="url-section">
+            <div class="url-section-label">or paste URL</div>
+            <div id="urlsGrid">
+              <div class="url-row">
+                <input type="url" class="img-url" placeholder="Paste image URL here..." />
+                <button class="url-rm" onclick="removeUrl(this)">×</button>
+              </div>
             </div>
+            <button class="add-url-btn" onclick="addUrl()">+ Add another URL</button>
           </div>
-          <button class="add-url-btn" onclick="addUrl()">+ Add another URL</button>
         </div>
       </div>
 
@@ -194,42 +237,47 @@ select option{background:#191c21}
 </div>
 
 <script>
-let imgPrompts = [], vidPrompts = [];
-const save = (k,v) => { try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} };
-const load = k => { try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;} };
+let imgPrompts=[], vidPrompts=[];
+// Each item: { type: 'blob'|'url', blob?: File, url?: string, objectUrl?: string, label: string }
+const images = [];
 
-function init() {
-  imgPrompts = load('hf_img') || [];
-  vidPrompts = load('hf_vid') || [];
-  renderList('img'); renderList('vid'); renderSelects();
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+const load=k=>{try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}};
+
+function init(){
+  imgPrompts=load('hf_img')||[];
+  vidPrompts=load('hf_vid')||[];
+  renderList('img');renderList('vid');renderSelects();
 }
 
-function showTab(name) {
-  ['run','img','vid'].forEach(t => document.getElementById('tab-'+t).style.display='none');
+// TABS
+function showTab(name){
+  ['run','img','vid'].forEach(t=>document.getElementById('tab-'+t).style.display='none');
   document.getElementById('tab-'+name).style.display='block';
-  document.querySelectorAll('.tab').forEach((b,i) => b.classList.toggle('active',['run','img','vid'][i]===name));
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['run','img','vid'][i]===name));
 }
 
-function addPrompt(type) {
-  const name = document.getElementById(type+'Name').value.trim();
-  const text = document.getElementById(type+'Text').value.trim();
-  if (!name||!text){alert('Enter both a name and prompt.');return;}
-  const list = type==='img'?imgPrompts:vidPrompts;
+// PROMPTS
+function addPrompt(type){
+  const name=document.getElementById(type+'Name').value.trim();
+  const text=document.getElementById(type+'Text').value.trim();
+  if(!name||!text){alert('Enter both a name and prompt.');return;}
+  const list=type==='img'?imgPrompts:vidPrompts;
   list.push({id:Date.now(),name,text});
   save('hf_'+type,list);
-  renderList(type); renderSelects();
+  renderList(type);renderSelects();
   document.getElementById(type+'Name').value='';
   document.getElementById(type+'Text').value='';
 }
 
-function deletePrompt(type,id) {
+function deletePrompt(type,id){
   if(type==='img') imgPrompts=imgPrompts.filter(p=>p.id!==id);
   else vidPrompts=vidPrompts.filter(p=>p.id!==id);
   save('hf_'+type,type==='img'?imgPrompts:vidPrompts);
-  renderList(type); renderSelects();
+  renderList(type);renderSelects();
 }
 
-function renderList(type) {
+function renderList(type){
   const list=type==='img'?imgPrompts:vidPrompts;
   const el=document.getElementById(type+'List');
   el.innerHTML='';
@@ -241,7 +289,7 @@ function renderList(type) {
   });
 }
 
-function renderSelects() {
+function renderSelects(){
   const is=document.getElementById('imgSel'),vs=document.getElementById('vidSel');
   const iv=is.value,vv=vs.value;
   is.innerHTML='<option value="">— select image prompt —</option>';
@@ -252,7 +300,7 @@ function renderSelects() {
   updatePreview('img');updatePreview('vid');
 }
 
-function updatePreview(type) {
+function updatePreview(type){
   const sel=document.getElementById(type+'Sel');
   const prev=document.getElementById(type+'Preview');
   const id=parseInt(sel.value);
@@ -261,19 +309,99 @@ function updatePreview(type) {
   prev.textContent=found?found.text.slice(0,90)+(found.text.length>90?'…':''):'';
 }
 
-function addUrl() {
+// IMAGE PASTE
+function focusPaste(){
+  const z=document.getElementById('pasteZone');
+  z.classList.add('focused');z.focus();
+  setTimeout(()=>z.classList.remove('focused'),3000);
+}
+
+function showFlash(){
+  const f=document.getElementById('pasteFlash');
+  f.classList.add('show');setTimeout(()=>f.classList.remove('show'),1100);
+}
+
+function addImageBlob(file){
+  if(!file||!file.type.startsWith('image/'))return false;
+  const objectUrl=URL.createObjectURL(file);
+  const idx=images.length;
+  images.push({type:'blob',blob:file,objectUrl,label:`Image ${idx+1}`});
+  addPreview(objectUrl,idx);
+  updateCount();
+  return true;
+}
+
+function addPreview(src,idx){
+  const grid=document.getElementById('previews');
+  const wrap=document.createElement('div');wrap.className='prev-item';wrap.id='prev-'+idx;
+  const img=document.createElement('img');img.src=src;img.alt='Preview';
+  const rm=document.createElement('button');rm.className='prev-rm';rm.textContent='×';
+  rm.onclick=()=>{images[idx]=null;wrap.remove();updateCount();};
+  const lbl=document.createElement('div');lbl.className='prev-label';lbl.textContent=`Image ${idx+1}`;
+  wrap.appendChild(img);wrap.appendChild(rm);wrap.appendChild(lbl);
+  grid.appendChild(wrap);
+}
+
+function updateCount(){
+  const active=images.filter(Boolean).length;
+  const el=document.getElementById('imgCount');
+  if(active>0){el.style.display='inline-flex';el.textContent=active+' image'+(active===1?'':'s');}
+  else el.style.display='none';
+}
+
+// Paste event
+document.addEventListener('paste',e=>{
+  const tag=document.activeElement?.tagName?.toLowerCase();
+  if(tag==='input'||tag==='textarea')return;
+  const items=(e.clipboardData||window.clipboardData)?.items;
+  if(!items)return;
+  let hasImg=false;
+  for(const item of items){if(item.type.startsWith('image/')){hasImg=true;break;}}
+  if(!hasImg)return;
+  e.preventDefault();
+  for(const item of items){
+    if(item.type.startsWith('image/')){
+      const blob=item.getAsFile();
+      if(blob&&addImageBlob(blob))showFlash();
+    }
+  }
+});
+
+// Drag and drop on paste zone
+const dz=document.getElementById('pasteZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('drag-over');
+  Array.from(e.dataTransfer.files).forEach(f=>addImageBlob(f));
+});
+
+// URL inputs
+function addUrl(){
   const grid=document.getElementById('urlsGrid');
   const row=document.createElement('div');row.className='url-row';
   row.innerHTML=`<input type="url" class="img-url" placeholder="Paste image URL here..." /><button class="url-rm" onclick="removeUrl(this)">×</button>`;
   grid.appendChild(row);
 }
-
-function removeUrl(btn) {
+function removeUrl(btn){
   const rows=document.querySelectorAll('.url-row');
-  if(rows.length>1) btn.closest('.url-row').remove();
+  if(rows.length>1)btn.closest('.url-row').remove();
 }
 
-function log(msg,type='info') {
+// Upload blob to Higgsfield directly from browser
+async function uploadBlobToHiggsfield(blob){
+  // Get presigned URL via Higgsfield import — we base64 encode and send to our backend
+  // which calls Claude to import it
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result); // data URL
+    reader.onerror=reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// LOG
+function log(msg,type='info'){
   const box=document.getElementById('logBox');box.style.display='block';
   const inner=document.getElementById('logInner');
   const l=document.createElement('div');l.className='ll '+type;l.textContent=msg;
@@ -281,35 +409,50 @@ function log(msg,type='info') {
 }
 function clearLog(){document.getElementById('logInner').innerHTML='';document.getElementById('logBox').style.display='none';}
 
-async function runPipeline() {
+// PIPELINE
+async function runPipeline(){
   const imgId=parseInt(document.getElementById('imgSel').value);
   const vidId=parseInt(document.getElementById('vidSel').value);
   const ar=document.getElementById('ar').value;
-  const urls=Array.from(document.querySelectorAll('.img-url')).map(i=>i.value.trim()).filter(Boolean);
 
   if(!imgId){alert('Select an image prompt.');return;}
   if(!vidId){alert('Select an animation prompt.');return;}
-  if(!urls.length){alert('Add at least one image URL.');return;}
 
   const imgPrompt=imgPrompts.find(p=>p.id===imgId)?.text;
   const vidPrompt=vidPrompts.find(p=>p.id===vidId)?.text;
+
+  // Collect all inputs: blobs + URLs
+  const jobs=[];
+
+  // Pasted/dropped images
+  images.forEach((img,i)=>{
+    if(img)jobs.push({type:'blob',blob:img.blob,label:img.label});
+  });
+
+  // URL inputs
+  Array.from(document.querySelectorAll('.img-url')).forEach((input,i)=>{
+    const url=input.value.trim();
+    if(url)jobs.push({type:'url',url,label:`URL ${i+1}`});
+  });
+
+  if(!jobs.length){alert('Add at least one image (paste or URL).');return;}
 
   const btn=document.getElementById('runBtn');
   btn.disabled=true;btn.innerHTML='<div class="spinner"></div> &nbsp;Running...';
   clearLog();
   document.getElementById('results').innerHTML='';
 
-  for(let i=0;i<urls.length;i++) {
-    const url=urls[i];
-    const label=`Image ${i+1}`;
-    log(`── ${label} of ${urls.length} ──`,'bold');
+  for(let i=0;i<jobs.length;i++){
+    const job=jobs[i];
+    const label=job.label;
+    log(`── ${label} ──`,'bold');
 
     const rc=document.createElement('div');rc.className='result-card';
     rc.innerHTML=`
       <div class="rc-head"><h3>${label}</h3><span class="badge pending" id="badge${i}">⏳ Processing</span></div>
       <div class="rc-body">
         <div class="prog-row">
-          <span class="prog-lbl" id="pl${i}">Generating image + video...</span>
+          <span class="prog-lbl" id="pl${i}">Generating...</span>
           <div class="prog-wrap"><div class="prog-bar" id="bar${i}"></div></div>
           <span class="prog-pct" id="pct${i}">0%</span>
         </div>
@@ -320,27 +463,37 @@ async function runPipeline() {
     const bar=document.getElementById('bar'+i);
     const pct=document.getElementById('pct'+i);
 
-    // Animate progress bar while waiting
-    let fakeProgress=0;
-    const ticker=setInterval(()=>{
-      fakeProgress=Math.min(90,fakeProgress+0.5);
-      bar.style.width=fakeProgress+'%';
-      pct.textContent=Math.round(fakeProgress)+'%';
+    let ticker=setInterval(()=>{
+      const cur=parseFloat(bar.style.width)||0;
+      const next=Math.min(88,cur+0.4);
+      bar.style.width=next+'%';pct.textContent=Math.round(next)+'%';
     },3000);
 
-    try {
-      log(`📤 Sending to pipeline...`);
+    try{
+      let imageUrl=job.url;
+
+      // If blob, convert to base64 data URL and send to backend
+      if(job.type==='blob'){
+        log('📤 Uploading pasted image...');
+        document.getElementById('pl'+i).textContent='Uploading image...';
+        const dataUrl=await uploadBlobToHiggsfield(job.blob);
+        imageUrl=dataUrl; // send as data URL, backend will handle
+      }
+
+      log('🎨 Generating image + video via Claude...');
+      document.getElementById('pl'+i).textContent='Generating image + video...';
+
       const resp=await fetch('/api/higgsfield',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({imageUrl:url,imagePrompt:imgPrompt,videoPrompt:vidPrompt,aspectRatio:ar})
+        body:JSON.stringify({imageUrl,imagePrompt:imgPrompt,videoPrompt:vidPrompt,aspectRatio:ar})
       });
 
       clearInterval(ticker);
 
-      if(!resp.ok) throw new Error(`Server error: ${resp.status}`);
+      if(!resp.ok)throw new Error('Server error: '+resp.status);
       const data=await resp.json();
-      if(!data.success) throw new Error(data.error||'Pipeline failed');
+      if(!data.success)throw new Error(data.error||'Pipeline failed');
 
       bar.style.width='100%';pct.textContent='100%';
       document.getElementById('pl'+i).textContent='Complete';
@@ -359,10 +512,10 @@ async function runPipeline() {
         link.textContent='↗ Open video in new tab';
         linkDiv.appendChild(link);rc.appendChild(linkDiv);
       }
-      log(`✅ ${label} done!`,'ok');
-    } catch(err) {
+      log('✅ '+label+' done!','ok');
+    }catch(err){
       clearInterval(ticker);
-      log(`❌ ${label}: ${err.message}`,'err');
+      log('❌ '+label+': '+err.message,'err');
       document.getElementById('badge'+i).className='badge error';
       document.getElementById('badge'+i).textContent='✕ Failed';
       document.getElementById('pl'+i).textContent=err.message;
