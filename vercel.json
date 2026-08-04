@@ -1,8 +1,7 @@
 {
   "functions": {
     "api/higgsfield.js": {
-      "maxDuration": 300,
-      "maxBodySize": "10mb"
+      "maxDuration": 300
     }
   },
   "rewrites": [
