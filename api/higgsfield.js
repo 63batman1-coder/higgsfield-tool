@@ -1,101 +1,71 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { action, key } = req.query;
-  const apiKey = key || req.headers['x-higgsfield-key'];
-  if (!apiKey) return res.status(400).json({ error: 'Missing API key' });
-
-  const [keyId, keySecret] = apiKey.includes(':') ? apiKey.split(':') : [apiKey, apiKey];
-
-  const BASE = 'https://platform.higgsfield.ai';
-  const auth = {
-    'hf-api-key': keyId,
-    'hf-secret': keySecret,
-    'Content-Type': 'application/json'
-  };
+  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'Missing ANTHROPIC_API_KEY environment variable' });
 
   try {
-    // Get presigned upload URL
-    if (action === 'upload-init') {
-      const { content_type } = req.query;
-      const r = await fetch(`${BASE}/files/generate-upload-url`, {
-        method: 'POST', headers: auth,
-        body: JSON.stringify({ content_type })
-      });
-      const text = await r.text();
-      if (!r.ok) return res.status(r.status).json({ error: text });
-      const data = JSON.parse(text);
-      return res.status(200).json(data);
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const { imageUrl, imagePrompt, videoPrompt, aspectRatio = '9:16' } = JSON.parse(Buffer.concat(chunks).toString());
+
+    if (!imageUrl || !imagePrompt || !videoPrompt) {
+      return res.status(400).json({ error: 'Missing imageUrl, imagePrompt, or videoPrompt' });
     }
 
-    // Confirm upload after browser PUT to S3
-    if (action === 'upload-confirm') {
-      const { media_id } = req.query;
-      const r = await fetch(`${BASE}/files/confirm`, {
-        method: 'POST', headers: auth,
-        body: JSON.stringify({ media_id })
-      });
-      const text = await r.text();
-      // Confirm may return empty 200 - that's OK
-      if (!r.ok) return res.status(r.status).json({ error: text });
-      return res.status(200).json(text ? JSON.parse(text) : { media_id, confirmed: true });
+    const prompt = `You have access to Higgsfield MCP tools. Run this exact pipeline and return ONLY a JSON object.
+
+Steps:
+1. Call media_import_url with url="${imageUrl}" and type="image" to get a media_id
+2. Call generate_image with model "nano_banana_2", prompt "${imagePrompt}", the media_id as medias[0].value with role "image", aspect_ratio "${aspectRatio}"
+3. Wait for image job to complete with jobs_wait
+4. Call generate_video with model "kling3_0", prompt "${videoPrompt}", the image job_id as medias[0].value with role "start_image", aspect_ratio "${aspectRatio}", duration 5, sound "off"
+5. Wait for video job to complete with jobs_wait
+6. Return ONLY this JSON: {"success":true,"image_url":"<result image url>","video_url":"<result video url>"}
+   On any error return: {"success":false,"error":"<what went wrong>"}
+
+Return ONLY the JSON object. No explanation, no markdown, no other text.`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'mcp-client-2025-04-04'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 2048,
+        mcp_servers: [{
+          type: 'url',
+          url: 'https://mcp.higgsfield.ai/mcp',
+          name: 'higgsfield'
+        }],
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(500).json({ error: `Claude API error: ${response.status} ${errText}` });
     }
 
-    // Submit generation job
-    if (action === 'job-submit') {
-      const chunks = [];
-      for await (const chunk of req) chunks.push(chunk);
-      const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
-      const { model, prompt, medias, aspect_ratio } = body;
+    const data = await response.json();
+    const text = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || '';
+    const clean = text.replace(/```json\n?|```\n?/g, '').trim();
 
-      let endpoint, payload;
-      if (model === 'nano_banana_2') {
-        endpoint = '/v1/image-to-image/nano-banana';
-        payload = {
-          params: {
-            prompt,
-            input_images: medias?.map(m => ({ type: 'image_url', image_url: m.value }))
-          }
-        };
-      } else if (model === 'kling3_0') {
-        endpoint = '/v1/image-to-video/kling/v3';
-        payload = {
-          params: {
-            prompt,
-            aspect_ratio,
-            mode: 'std',
-            sound: 'off',
-            input_images: medias?.map(m => ({ type: 'image_url', image_url: m.value }))
-          }
-        };
-      } else {
-        endpoint = `/v1/${model}`;
-        payload = { params: body };
-      }
-
-      const r = await fetch(`${BASE}${endpoint}`, {
-        method: 'POST', headers: auth,
-        body: JSON.stringify(payload)
-      });
-      const text = await r.text();
-      if (!r.ok) return res.status(r.status).json({ error: text, endpoint });
-      const data = JSON.parse(text);
-      return res.status(200).json({ id: data.id || data.job_id || data.request_id, ...data });
+    try {
+      const result = JSON.parse(clean);
+      return res.status(200).json(result);
+    } catch {
+      return res.status(500).json({ error: 'Bad response from Claude: ' + text.slice(0, 300) });
     }
 
-    // Poll job status
-    if (action === 'job-status') {
-      const { job_id } = req.query;
-      const r = await fetch(`${BASE}/v1/requests/${job_id}/status`, { headers: auth });
-      const text = await r.text();
-      if (!r.ok) return res.status(r.status).json({ error: text });
-      return res.status(200).json(JSON.parse(text));
-    }
-
-    return res.status(400).json({ error: `Unknown action: ${action}` });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
