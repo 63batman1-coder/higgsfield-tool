@@ -8,6 +8,9 @@ export default async function handler(req, res) {
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'Missing ANTHROPIC_API_KEY' });
 
+  const HIGGSFIELD_TOKEN = process.env.HIGGSFIELD_TOKEN;
+  if (!HIGGSFIELD_TOKEN) return res.status(500).json({ error: 'Missing HIGGSFIELD_TOKEN' });
+
   try {
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
@@ -76,7 +79,7 @@ Return ONLY the JSON. No markdown, no explanation.`;
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 2048,
-        mcp_servers: [{ type: 'url', url: 'https://mcp.higgsfield.ai/mcp', name: 'higgsfield' }],
+        mcp_servers: [{ type: 'url', url: 'https://mcp.higgsfield.ai/mcp', name: 'higgsfield', authorization_token: HIGGSFIELD_TOKEN }],
         messages: [{ role: 'user', content: claudeContent }]
       })
     });
