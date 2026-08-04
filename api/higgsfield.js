@@ -21,12 +21,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Check if it's a base64 data URL (pasted image) or a regular URL
     const isDataUrl = imageUrl.startsWith('data:image/');
 
     let claudeContent;
     if (isDataUrl) {
-      // Extract base64 data and media type
       const matches = imageUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
       if (!matches) return res.status(400).json({ error: 'Invalid image data' });
       const mediaType = matches[1];
@@ -42,7 +40,7 @@ export default async function handler(req, res) {
           text: `You have access to Higgsfield MCP tools. The image above is the product image. Run this pipeline and return ONLY a JSON object.
 
 Steps:
-1. Upload this image to Higgsfield using media_upload_widget or by calling media_import_url — since this is a base64 image, use the Higgsfield upload tools to get a media_id
+1. Upload this image to Higgsfield using media_import_url or upload tools to get a media_id
 2. Call generate_image with model "nano_banana_2", prompt "${imagePrompt}", using the uploaded media_id as medias[0].value with role "image", aspect_ratio "${aspectRatio}"
 3. Wait for image job to complete with jobs_wait
 4. Call generate_video with model "kling3_0", prompt "${videoPrompt}", using the image job_id as medias[0].value with role "start_image", aspect_ratio "${aspectRatio}", duration 5, sound "off"
@@ -78,7 +76,7 @@ Return ONLY the JSON. No markdown, no explanation.`;
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
-        max_tokens: 2048,
+        max_tokens: 4096,
         mcp_servers: [{ type: 'url', url: 'https://mcp.higgsfield.ai/mcp', name: 'higgsfield', authorization_token: HIGGSFIELD_TOKEN }],
         messages: [{ role: 'user', content: claudeContent }]
       })
@@ -93,11 +91,11 @@ Return ONLY the JSON. No markdown, no explanation.`;
     try {
       return res.status(200).json(JSON.parse(clean));
     } catch {
-      return res.status(500).json({ error: 'Bad response: ' + text.slice(0, 300) });
+      return res.status(500).json({ error: 'Bad response: ' + text.slice(0, 500) });
     }
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 }
 
-export const config = { api: { bodyParser: false, sizeLimit: '10mb' } };
+export const config = { api: { bodyParser: false } };
