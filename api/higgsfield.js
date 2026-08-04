@@ -22,15 +22,12 @@ export default async function handler(req, res) {
     while (Date.now() - start < maxWaitMs) {
       await new Promise(r => setTimeout(r, 4000));
       const r = await fetch(`${BASE}/v1/requests/${jobId}/status`, { headers: HF_HEADERS });
-      if (!r.ok) throw new Error(`Poll error: ${r.status}`);
+      if (!r.ok) throw new Error(`Poll error: ${r.status} ${await r.text()}`);
       const data = await r.json();
       const status = data?.status || data?.data?.status;
-      if (status === 'completed' || status === 'success') {
-        return data?.result_url || data?.data?.result_url || data?.output_url || data?.data?.output_url;
-      }
-      if (status === 'failed' || status === 'error') {
-        throw new Error('Job failed: ' + JSON.stringify(data));
-      }
+      const resultUrl = data?.result_url || data?.data?.result_url || data?.output_url || data?.data?.output_url;
+      if (status === 'completed' || status === 'success') return resultUrl;
+      if (status === 'failed' || status === 'error') throw new Error('Job failed: ' + JSON.stringify(data));
     }
     throw new Error('Job timed out');
   }
@@ -46,15 +43,43 @@ export default async function handler(req, res) {
     }
 
     // Step 1: Import image URL into Higgsfield
-    const importRes = await fetch(`${BASE}/files/import-url`, {
+    const importRes = await fetch(`${BASE}/files/generate-upload-url`, {
       method: 'POST',
       headers: HF_HEADERS,
-      body: JSON.stringify({ url: imageUrl, type: 'image' })
+      body: JSON.stringify({ file_name: 'product.jpg', content_type: 'image/jpeg' })
     });
-    if (!importRes.ok) throw new Error(`Import failed: ${importRes.status} ${await importRes.text()}`);
-    const importData = await importRes.json();
-    const mediaId = importData?.id || importData?.data?.id || importData?.media_id;
-    if (!mediaId) throw new Error('No media_id from import: ' + JSON.stringify(importData));
+
+    let mediaId;
+
+    if (!importRes.ok) {
+      // Fallback: try media import via URL directly
+      const importRes2 = await fetch(`${BASE}/v1/media/import`, {
+        method: 'POST',
+        headers: HF_HEADERS,
+        body: JSON.stringify({ url: imageUrl, type: 'image' })
+      });
+      if (!importRes2.ok) throw new Error(`Import failed: ${importRes2.status} ${await importRes2.text()}`);
+      const d = await importRes2.json();
+      mediaId = d?.id || d?.data?.id || d?.media_id;
+    } else {
+      const uploadData = await importRes.json();
+      const uploadUrl = uploadData?.upload_url || uploadData?.data?.upload_url;
+      mediaId = uploadData?.id || uploadData?.data?.id || uploadData?.file_id;
+
+      if (uploadUrl) {
+        // Fetch the image and upload it
+        const imgFetch = await fetch(imageUrl);
+        if (!imgFetch.ok) throw new Error(`Could not fetch image URL: ${imgFetch.status}`);
+        const imgBuffer = await imgFetch.arrayBuffer();
+        await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'image/jpeg' },
+          body: imgBuffer
+        });
+      }
+    }
+
+    if (!mediaId) throw new Error('No media_id obtained');
 
     // Step 2: Generate image with nano_banana_2
     const imgRes = await fetch(`${BASE}/v1/generate/image`, {
