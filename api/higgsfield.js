@@ -32,59 +32,6 @@ export default async function handler(req, res) {
     throw new Error('Job timed out');
   }
 
-  async function getMediaId(imageUrl) {
-    const isBase64 = imageUrl.startsWith('data:image/');
-
-    // Get presigned upload URL
-    const uploadUrlRes = await fetch(`${BASE}/files/generate-upload-url`, {
-      method: 'POST',
-      headers: HF_HEADERS,
-      body: JSON.stringify({ file_name: 'product.jpg', content_type: 'image/jpeg' })
-    });
-    if (!uploadUrlRes.ok) throw new Error(`Upload URL failed: ${uploadUrlRes.status} ${await uploadUrlRes.text()}`);
-    const uploadData = await uploadUrlRes.json();
-    const uploadUrl = uploadData?.upload_url || uploadData?.data?.upload_url;
-    const mediaId = uploadData?.id || uploadData?.data?.id || uploadData?.file_id || uploadData?.data?.file_id;
-    if (!uploadUrl) throw new Error('No upload_url in response: ' + JSON.stringify(uploadData));
-
-    let imageBuffer;
-    if (isBase64) {
-      const base64Data = imageUrl.split(',')[1];
-      const binary = atob(base64Data);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      imageBuffer = bytes.buffer;
-    } else {
-      const imgFetch = await fetch(imageUrl);
-      if (!imgFetch.ok) throw new Error(`Could not fetch image: ${imgFetch.status}`);
-      imageBuffer = await imgFetch.arrayBuffer();
-    }
-
-    // Upload to S3
-    const putRes = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'image/jpeg' },
-      body: imageBuffer
-    });
-    if (!putRes.ok) throw new Error(`S3 upload failed: ${putRes.status}`);
-
-    if (mediaId) return mediaId;
-
-    // If no ID in upload response, confirm the upload
-    const confirmRes = await fetch(`${BASE}/files/confirm-upload`, {
-      method: 'POST',
-      headers: HF_HEADERS,
-      body: JSON.stringify({ upload_url: uploadUrl })
-    });
-    if (confirmRes.ok) {
-      const confirmData = await confirmRes.json();
-      const confirmedId = confirmData?.id || confirmData?.data?.id || confirmData?.file_id;
-      if (confirmedId) return confirmedId;
-    }
-
-    throw new Error('Could not get media_id after upload. Upload response: ' + JSON.stringify(uploadData));
-  }
-
   try {
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
@@ -95,7 +42,20 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const mediaId = await getMediaId(imageUrl);
+    if (imageUrl.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Pasted screenshots are not supported — please use "Copy Image Address" to get a URL instead.' });
+    }
+
+    // Import URL directly into Higgsfield
+    const importRes = await fetch(`${BASE}/files/import-url`, {
+      method: 'POST',
+      headers: HF_HEADERS,
+      body: JSON.stringify({ url: imageUrl, type: 'image' })
+    });
+    if (!importRes.ok) throw new Error(`Import failed: ${importRes.status} ${await importRes.text()}`);
+    const importData = await importRes.json();
+    const mediaId = importData?.id || importData?.data?.id || importData?.media_id || importData?.data?.media_id;
+    if (!mediaId) throw new Error('No media_id from import: ' + JSON.stringify(importData));
 
     // Generate image with nano_banana_2
     const imgRes = await fetch(`${BASE}/v1/generate/image`, {
