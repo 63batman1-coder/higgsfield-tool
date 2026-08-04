@@ -5,11 +5,35 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'Missing ANTHROPIC_API_KEY' });
+  const KEY_ID = process.env.HF_KEY_ID;
+  const KEY_SECRET = process.env.HF_KEY_SECRET;
+  if (!KEY_ID || !KEY_SECRET) return res.status(500).json({ error: 'Missing HF_KEY_ID or HF_KEY_SECRET' });
 
-  const HIGGSFIELD_TOKEN = process.env.HIGGSFIELD_TOKEN;
-  if (!HIGGSFIELD_TOKEN) return res.status(500).json({ error: 'Missing HIGGSFIELD_TOKEN' });
+  const HF_HEADERS = {
+    'Content-Type': 'application/json',
+    'hf-api-key': KEY_ID,
+    'hf-secret': KEY_SECRET
+  };
+
+  const BASE = 'https://platform.higgsfield.ai';
+
+  async function pollJob(jobId, maxWaitMs = 240000) {
+    const start = Date.now();
+    while (Date.now() - start < maxWaitMs) {
+      await new Promise(r => setTimeout(r, 4000));
+      const r = await fetch(`${BASE}/v1/requests/${jobId}/status`, { headers: HF_HEADERS });
+      if (!r.ok) throw new Error(`Poll error: ${r.status}`);
+      const data = await r.json();
+      const status = data?.status || data?.data?.status;
+      if (status === 'completed' || status === 'success') {
+        return data?.result_url || data?.data?.result_url || data?.output_url || data?.data?.output_url;
+      }
+      if (status === 'failed' || status === 'error') {
+        throw new Error('Job failed: ' + JSON.stringify(data));
+      }
+    }
+    throw new Error('Job timed out');
+  }
 
   try {
     const chunks = [];
@@ -21,78 +45,61 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const isDataUrl = imageUrl.startsWith('data:image/');
-
-    let claudeContent;
-    if (isDataUrl) {
-      const matches = imageUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
-      if (!matches) return res.status(400).json({ error: 'Invalid image data' });
-      const mediaType = matches[1];
-      const base64Data = matches[2];
-
-      claudeContent = [
-        {
-          type: 'image',
-          source: { type: 'base64', media_type: mediaType, data: base64Data }
-        },
-        {
-          type: 'text',
-          text: `You have access to Higgsfield MCP tools. The image above is the product image. Run this pipeline and return ONLY a JSON object.
-
-Steps:
-1. Upload this image to Higgsfield using media_import_url or upload tools to get a media_id
-2. Call generate_image with model "nano_banana_2", prompt "${imagePrompt}", using the uploaded media_id as medias[0].value with role "image", aspect_ratio "${aspectRatio}"
-3. Wait for image job to complete with jobs_wait
-4. Call generate_video with model "kling3_0", prompt "${videoPrompt}", using the image job_id as medias[0].value with role "start_image", aspect_ratio "${aspectRatio}", duration 5, sound "off"
-5. Wait for video job to complete with jobs_wait
-6. Return ONLY: {"success":true,"image_url":"<result image url>","video_url":"<result video url>"}
-   On error: {"success":false,"error":"<what went wrong>"}
-
-Return ONLY the JSON. No markdown, no explanation.`
-        }
-      ];
-    } else {
-      claudeContent = `You have access to Higgsfield MCP tools. Run this pipeline and return ONLY a JSON object.
-
-Steps:
-1. Call media_import_url with url="${imageUrl}" and type="image" to get a media_id
-2. Call generate_image with model "nano_banana_2", prompt "${imagePrompt}", the media_id as medias[0].value with role "image", aspect_ratio "${aspectRatio}"
-3. Wait for image job to complete with jobs_wait
-4. Call generate_video with model "kling3_0", prompt "${videoPrompt}", the image job_id as medias[0].value with role "start_image", aspect_ratio "${aspectRatio}", duration 5, sound "off"
-5. Wait for video job to complete with jobs_wait
-6. Return ONLY: {"success":true,"image_url":"<result image url>","video_url":"<result video url>"}
-   On error: {"success":false,"error":"<what went wrong>"}
-
-Return ONLY the JSON. No markdown, no explanation.`;
-    }
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Step 1: Import image URL into Higgsfield
+    const importRes = await fetch(`${BASE}/files/import-url`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'mcp-client-2025-04-04'
-      },
+      headers: HF_HEADERS,
+      body: JSON.stringify({ url: imageUrl, type: 'image' })
+    });
+    if (!importRes.ok) throw new Error(`Import failed: ${importRes.status} ${await importRes.text()}`);
+    const importData = await importRes.json();
+    const mediaId = importData?.id || importData?.data?.id || importData?.media_id;
+    if (!mediaId) throw new Error('No media_id from import: ' + JSON.stringify(importData));
+
+    // Step 2: Generate image with nano_banana_2
+    const imgRes = await fetch(`${BASE}/v1/generate/image`, {
+      method: 'POST',
+      headers: HF_HEADERS,
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4096,
-        mcp_servers: [{ type: 'url', url: 'https://mcp.higgsfield.ai/mcp', name: 'higgsfield', authorization_token: HIGGSFIELD_TOKEN }],
-        messages: [{ role: 'user', content: claudeContent }]
+        model: 'nano_banana_2',
+        prompt: imagePrompt,
+        aspect_ratio: aspectRatio,
+        medias: [{ value: mediaId, role: 'image' }]
       })
     });
+    if (!imgRes.ok) throw new Error(`Image gen failed: ${imgRes.status} ${await imgRes.text()}`);
+    const imgData = await imgRes.json();
+    const imgJobId = imgData?.id || imgData?.data?.id || imgData?.job_id;
+    if (!imgJobId) throw new Error('No job_id from image gen: ' + JSON.stringify(imgData));
 
-    if (!response.ok) throw new Error(`Claude API error: ${response.status} ${await response.text()}`);
+    // Step 3: Poll for image result
+    const imageResultUrl = await pollJob(imgJobId);
+    if (!imageResultUrl) throw new Error('No image result URL after polling');
 
-    const data = await response.json();
-    const text = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || '';
-    const clean = text.replace(/```json\n?|```\n?/g, '').trim();
+    // Step 4: Generate video with kling3_0
+    const vidRes = await fetch(`${BASE}/v1/generate/video`, {
+      method: 'POST',
+      headers: HF_HEADERS,
+      body: JSON.stringify({
+        model: 'kling3_0',
+        prompt: videoPrompt,
+        aspect_ratio: aspectRatio,
+        duration: 5,
+        sound: 'off',
+        medias: [{ value: imgJobId, role: 'start_image' }]
+      })
+    });
+    if (!vidRes.ok) throw new Error(`Video gen failed: ${vidRes.status} ${await vidRes.text()}`);
+    const vidData = await vidRes.json();
+    const vidJobId = vidData?.id || vidData?.data?.id || vidData?.job_id;
+    if (!vidJobId) throw new Error('No job_id from video gen: ' + JSON.stringify(vidData));
 
-    try {
-      return res.status(200).json(JSON.parse(clean));
-    } catch {
-      return res.status(500).json({ error: 'Bad response: ' + text.slice(0, 500) });
-    }
+    // Step 5: Poll for video result
+    const videoResultUrl = await pollJob(vidJobId);
+    if (!videoResultUrl) throw new Error('No video result URL after polling');
+
+    return res.status(200).json({ success: true, image_url: imageResultUrl, video_url: videoResultUrl });
+
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
