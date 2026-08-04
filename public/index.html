@@ -244,9 +244,46 @@ const images = [];
 const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
 const load=k=>{try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}};
 
+const DEFAULT_IMG = [
+  {id:1,name:"Target",text:"put a display setup for the product here inside of a target. however, ensure there is no actual target wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:2,name:"Target Mannequin",text:"put a display setup for the product here inside of a target. make it on a mannequin. have some products hanging in the background as if its in a target. ensure there is no actual target wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:3,name:"Zara",text:"put a realistic display setup for the products here inside of a clothing store. make it on a mannequin. have some products hanging in the background as if its in Zara. ensure there is no actual Zara wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:4,name:"VS PINK",text:"put a realistic display setup for the products here inside of a clothing store. make it on a mannequin. have some products hanging in the background as if its in Victoria Secret PINK store. ensure there is no actual Victoria Secret PINK wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:5,name:"Pacsun",text:"put a realistic display setup for the products here inside of a clothing store. make it on a mannequin. have some products hanging in the background as if its in Pacsun. ensure there is no actual Pacsun wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:6,name:"Home Goods",text:"put a display setup for the product here inside of a Home Goods. however, ensure there is no actual Home Goods wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:7,name:"Sephora",text:"put a display setup for the product here inside of a sephora. however, ensure there is no actual sephora wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:8,name:"AutoZone",text:"put a display setup for the product here inside of a autozone. however, ensure there is no actual autozone wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:9,name:"Dicks",text:"put a display setup for the product here inside of a dicks sporting goods. however, ensure there is no actual dicks sporting goods wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:10,name:"Home Depot",text:"put a display setup for the product here inside of a Home Depot. however, ensure there is no actual Home Depot wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:11,name:"Costco",text:"put a display setup for the product here inside of a Costco. however, ensure there is no actual Costco wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:12,name:"Mannequin",text:"put a display setup for the product here inside of a clothing store. make it on a mannequin. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:13,name:"Shoes",text:"put a realistic display setup for the product on a shoe box inside of a generic store that isn't branded. ENSURE THERE ARE NO PRICE TAGS."},
+  {id:14,name:"Vitamin Store",text:"put a display setup for the product here inside of a vitamin store. ENSURE THERE ARE NO PRICE TAGS."},
+  {id:15,name:"Williams & Sonoma",text:"put a display setup for the product here inside of a Williams & Sonoma. however, ensure there is no actual Williams & Sonoma wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:16,name:"Clothing Store",text:"put a display setup for the product here inside of a clothing store. ENSURE THERE ARE NO PRICE TAGS."},
+  {id:17,name:"Shoe Store",text:"put this product on top of a box in the display of a shoe store. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:18,name:"Best Buy",text:"put a display setup for the product here inside of a best buy. however, ensure there is no actual best buy wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:19,name:"Blankets/Furniture",text:"put a display setup for this exact product inside of a furniture store. ENSURE THERE ARE NO PRICE TAGS."},
+  {id:20,name:"Grocery Store",text:"put a display setup for the product here inside of a grocery store, focusing on the product. make sure that any big brand products around it don't show the real names of themselves. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:21,name:"Barnes and Nobles",text:"put a display setup for the product here inside of a barnes & nobles. however, ensure there is no actual barnes & nobles wording visible. ENSURE THERE ARE NO PRICE TAGS"},
+  {id:22,name:"NEW PROMPT",text:"put a SINGULAR realistic display setup for the product here inside of a generic store that isn't branded. ensure it is the main focus and there isn't anything that isn't the product near it. ENSURE THERE ARE NO PRICE TAGS."},
+  {id:23,name:"NEW PROMPT #2",text:"put a SINGULAR realistic display setup for the product here inside of a generic store that isn't branded. ensure there isn't anything that isn't the product near it. ENSURE THERE ARE NO PRICE TAGS."},
+  {id:24,name:"NEW PROMPT #3",text:"put a realistic display setup for the product inside of a store. ensure it is the main focus and there isn't anything that is in close proximity to the product. ENSURE THERE ARE NO PRICE TAGS."},
+  {id:25,name:"NEW PROMPT #4",text:"put a SINGULAR realistic display setup for the product here inside of a (fill in product type) store. ensure it is the main focus and there isn't anything in close proximity to the product. ENSURE THERE ARE NO PRICE TAGS."}
+];
+
+const DEFAULT_VID = [
+  {id:101,name:"Poke",text:"camera slowly pushes in and zooms directly onto the product filling the frame, a hand reaches in and pokes the fabric/product, keeping the product as the main focus throughout"},
+  {id:102,name:"Close up",text:"bring the camera closer to the product and have a hand poke the product as if the person recording touched it. get very close to the product so u can read all the words."},
+  {id:103,name:"Tight Poke",text:"extreme close up push in directly on the product, camera slowly zooms in tight on the fabric detail, a hand reaches in and lightly touches the product, product fills the entire frame"}
+];
+
 function init(){
-  imgPrompts=load('hf_img')||[];
-  vidPrompts=load('hf_vid')||[];
+  const savedImg=load('hf_img');
+  const savedVid=load('hf_vid');
+  // Use saved if exists, otherwise load defaults
+  imgPrompts=savedImg&&savedImg.length>0?savedImg:DEFAULT_IMG;
+  vidPrompts=savedVid&&savedVid.length>0?savedVid:DEFAULT_VID;
   renderList('img');renderList('vid');renderSelects();
 }
 
