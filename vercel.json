@@ -1,7 +1,12 @@
 {
   "functions": {
     "api/higgsfield.js": {
-      "maxDuration": 300
+      "maxDuration": 300,
+      "maxBodySize": "10mb"
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/((?!api/).*)", "destination": "/public/index.html" }
+  ]
 }
